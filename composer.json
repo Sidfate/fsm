@@ -1,0 +1,18 @@
+{
+    "name": "sidfate/fsm",
+    "description": "A simple finite state machine",
+    "keywords": ["fsm"],
+    "homepage": "https://github.com/Sidfate/alpha",
+    "license": "MIT",
+    "version": "1.0.0",
+    "authors": [
+		{
+			"name": "Sidfate",
+			"email": "sidfate@163.com",
+			"homepage": "https://sidfate.com"
+		}
+    ],
+    "require": {
+        "php": ">=5.3.0"
+    }
+}
