@@ -4,7 +4,7 @@ A simple finite state machine
 # Install
 `composer require sidfate/fsm`
 
-# Usages
+# Usage
 ```
 $fsm = new Fsm([
     'init'=> 'green',
@@ -24,3 +24,6 @@ $fsm->warn();		// I am warn
 echo $fsm->now();	// yellow
 
 ```
+
+# Document
+[Click me](https://github.com/Sidfate/fsm/wiki)

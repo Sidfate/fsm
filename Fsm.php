@@ -19,12 +19,6 @@ class Fsm
     protected $events = [];
 
     /**
-     * Methods closure
-     * @var array
-     */
-    protected $methods = [];
-
-    /**
      * State transitions history
      * @var array
      */
@@ -43,7 +37,7 @@ class Fsm
         $this->setEvents($events);
     }
 
-    public function initialize($init)
+    protected function initialize($init)
     {
         $this->state = $init;
         $this->history[] = $init;
@@ -53,7 +47,7 @@ class Fsm
      * Set events
      * @param $events
      */
-    public function setEvents($events)
+    protected function setEvents($events)
     {
         foreach ($events as $event) {
             $item = [
@@ -62,6 +56,45 @@ class Fsm
                 'method'=> null
             ];
             $this->events[$event['name']] = $item;
+        }
+    }
+
+    /**
+     * Get the array value
+     * @param $array
+     * @param $key
+     * @param null $default
+     * @return mixed|null
+     */
+    protected function arrGet($array, $key, $default = null)
+    {
+        if(is_array($array) && isset($array[$key])) {
+            return $array[$key];
+        }
+
+        return $default;
+    }
+
+    /**
+     * State transform
+     * @param $to
+     */
+    protected function transform($to)
+    {
+        $exist = false;
+        $method = null;
+        $from = $this->state;
+        foreach ($this->events as $event) {
+            if($from == $event['from'] && $to == $event['to']) {
+                $exist = true;
+                $method = $event['method'];
+            }
+        }
+
+        if($exist) {
+            $method && call_user_func($method);
+            $this->state = $to;
+            $this->history[] = $to;
         }
     }
 
@@ -85,6 +118,15 @@ class Fsm
     }
 
     /**
+     * Get history log
+     * @return array
+     */
+    public function log()
+    {
+        return $this->history;
+    }
+
+    /**
      * Call Function
      * @param $name
      * @param $arguments
@@ -100,53 +142,5 @@ class Fsm
                 $this->transform($this->events[$name]['to']);
             }
         }
-    }
-
-    /**
-     * State transform
-     * @param $to
-     */
-    public function transform($to)
-    {
-        $exist = false;
-        $method = null;
-        $from = $this->state;
-        foreach ($this->events as $event) {
-            if($from == $event['from'] && $to == $event['to']) {
-                $exist = true;
-                $method = $event['method'];
-            }
-        }
-
-        if($exist) {
-            $method && call_user_func($method);
-            $this->state = $to;
-            $this->history[] = $to;
-        }
-    }
-
-    /**
-     * Get history log
-     * @return array
-     */
-    public function log()
-    {
-        return $this->history;
-    }
-
-    /**
-     * Get the array value
-     * @param $array
-     * @param $key
-     * @param null $default
-     * @return mixed|null
-     */
-    protected function arrGet($array, $key, $default = null)
-    {
-        if(is_array($array) && isset($array[$key])) {
-            return $array[$key];
-        }
-
-        return $default;
     }
 }
