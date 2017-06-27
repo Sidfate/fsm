@@ -2,7 +2,7 @@
     "name": "sidfate/fsm",
     "description": "A simple finite state machine",
     "keywords": ["fsm"],
-    "homepage": "https://github.com/Sidfate/alpha",
+    "homepage": "https://github.com/Sidfate/fsm",
     "license": "MIT",
     "version": "1.0.0",
     "authors": [
