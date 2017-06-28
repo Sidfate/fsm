@@ -81,21 +81,31 @@ class Fsm
      */
     protected function transform($to)
     {
-        $exist = false;
-        $method = null;
-        $from = $this->state;
-        foreach ($this->events as $event) {
-            if($from == $event['from'] && $to == $event['to']) {
-                $exist = true;
-                $method = $event['method'];
-            }
-        }
+        $event = $this->searchEvent($to);
 
-        if($exist) {
+        if($event) {
+            $method = $this->arrGet($event, 'method');
             $method && call_user_func($method);
             $this->state = $to;
             $this->history[] = $to;
         }
+    }
+
+    /**
+     * Search the event from the current state to the given state
+     * @param  $to
+     * @return mixed|null
+     */
+    protected function searchEvent($to)
+    {
+        $from = $this->state;
+        foreach ($this->events as $event) {
+            if($from == $event['from'] && $to == $event['to']) {
+                return $event;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -124,6 +134,26 @@ class Fsm
     public function log()
     {
         return $this->history;
+    }
+
+    /**
+     * Judge if the current state can transform to the given state
+     * @param  $to
+     * @return boolean
+     */
+    public function can($to)
+    {
+        return $this->searchEvent($to) ? true : false;
+    }
+
+    /**
+     * Judge if the given state is the current state
+     * @param  $state
+     * @return boolean
+     */
+    public function is($state)
+    {
+        return $state === $this->state ? true : false;
     }
 
     /**
