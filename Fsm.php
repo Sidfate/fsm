@@ -25,18 +25,31 @@ class Fsm
     protected $history = [];
 
     /**
+     * Arbitrary data
+     * @var array
+     */
+    protected $data = [];
+
+    /**
      * Fsm constructor.
      * @param $data
      */
-    public function __construct($data)
+    public function __construct($creator)
     {
-        $init = $this->arrGet($data, 'init', '');
-        $events = $this->arrGet($data, 'events', []);
+        $init = $this->arrGet($creator, 'init', '');
+        $data = $this->arrGet($creator, 'data', []);
+        $events = $this->arrGet($creator, 'events', []);
 
         $this->initialize($init);
         $this->setEvents($events);
+        $this->setData($data);
     }
 
+    /**
+     * Initialize state
+     * @param  [type] $init [description]
+     * @return [type]       [description]
+     */
     protected function initialize($init)
     {
         $this->state = $init;
@@ -56,6 +69,18 @@ class Fsm
                 'method'=> null
             ];
             $this->events[$event['name']] = $item;
+        }
+    }
+
+    /**
+     * Set data
+     * @param array
+     */
+    protected function setData($data) {
+        foreach ($data as $key => $value) {
+            if(!is_numeric($key)) {
+                $this->data[$key] = $value;
+            }
         }
     }
 
@@ -157,6 +182,23 @@ class Fsm
     }
 
     /**
+     * Get all possible transitions from the current state
+     * @return array
+     */
+    public function trans()
+    {
+        $trans = [];
+        $from = $this->state;
+        foreach ($this->events as $eName=> $event) {
+            if($from == $event['from']) {
+                $trans[] = $eName;
+            }
+        }
+
+        return $trans;
+    }
+
+    /**
      * Call Function
      * @param $name
      * @param $arguments
@@ -172,5 +214,15 @@ class Fsm
                 $this->transform($this->events[$name]['to']);
             }
         }
+    }
+
+    /**
+     * Get data
+     * @param  $name
+     * @return mixed|null
+     */
+    public function __get($name)
+    {
+        return isset($this->data[$name]) ? $this->data[$name] : null;
     }
 }
