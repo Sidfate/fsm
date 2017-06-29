@@ -25,6 +25,18 @@ class Fsm
     protected $methods = [];
 
     /**
+     * All states
+     * @var array
+     */
+    protected $states = [];
+
+    /**
+     * All transitions
+     * @var array
+     */
+    protected $transitions = [];
+
+    /**
      * State transitions history
      * @var array
      */
@@ -94,23 +106,32 @@ class Fsm
             $eName = $this->arrGet($event, 'name');
 
             if($from && $to && $eName) {
-
+                $this->transitions[] = $eName;
                 if(is_array($from)) {
                     foreach ($from as $f) {
                         $this->events[$f][$to] = $eName;
+                        $this->states[] = $f;
                     }
+                    $this->states[] = $to;
                     continue;
                 }
                 if(is_array($to)) {
                     foreach ($to as $t) {
                         $this->events[$from][$t] = $eName;
+                        $this->states[] = $t;
                     }
+                    $this->states[] = $from;
                     continue;
                 }
                 
+                $this->states[] = $from;
+                $this->states[] = $to;
                 $this->events[$from][$to] = $eName;
             }
         }
+
+        $this->transitions = array_values(array_unique($this->transitions));
+        $this->states = array_values(array_unique($this->states));
     }
 
     /**
@@ -240,6 +261,24 @@ class Fsm
         }
 
         return $trans;
+    }
+
+    /**
+     * Get all transitions
+     * @return array
+     */
+    public function allTrans()
+    {
+        return $this->transitions;
+    }
+
+    /**
+     * Get all states
+     * @return array
+     */
+    public function allStates()
+    {
+        return $this->states;
     }
 
     /**
