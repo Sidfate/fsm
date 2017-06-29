@@ -19,6 +19,12 @@ class Fsm
     protected $events = [];
 
     /**
+     * Events method
+     * @var array
+     */
+    protected $methods = [];
+
+    /**
      * State transitions history
      * @var array
      */
@@ -83,12 +89,27 @@ class Fsm
     protected function setEvents($events)
     {
         foreach ($events as $event) {
-            $item = [
-                'from'=> $event['from'],
-                'to'=> $event['to'],
-                'method'=> null
-            ];
-            $this->events[$event['name']] = $item;
+            $from = $this->arrGet($event, 'from');
+            $to = $this->arrGet($event, 'to');
+            $eName = $this->arrGet($event, 'name');
+
+            if($from && $to && $eName) {
+
+                if(is_array($from)) {
+                    foreach ($from as $f) {
+                        $this->events[$f][$to] = $eName;
+                    }
+                    continue;
+                }
+                if(is_array($to)) {
+                    foreach ($to as $t) {
+                        $this->events[$from][$t] = $eName;
+                    }
+                    continue;
+                }
+                
+                $this->events[$from][$to] = $eName;
+            }
         }
     }
 
@@ -122,14 +143,18 @@ class Fsm
 
     /**
      * State transform
-     * @param $to
+     * @param $event
      */
-    protected function transform($to)
+    protected function transform($event)
     {
-        $event = $this->searchEvent($to);
+        $from = $this->state;
+        if(!isset($this->events[$from])) {
+            return ;
+        }
+        $to = array_search($event, $this->events[$from]);
 
-        if($event) {
-            $method = $this->arrGet($event, 'method');
+        if($to) {
+            $method = $this->arrGet($this->methods, $event);
             $method && call_user_func($method);
             $this->state = $to;
             $this->history[] = $to;
@@ -144,10 +169,9 @@ class Fsm
     protected function searchEvent($to)
     {
         $from = $this->state;
-        foreach ($this->events as $event) {
-            if($from == $event['from'] && $to == $event['to']) {
-                return $event;
-            }
+
+        if(isset($this->events[$from]) && isset($this->events[$from][$to])) {
+            return $this->events[$from][$to];
         }
 
         return null;
@@ -160,7 +184,7 @@ class Fsm
      */
     public function on($name, \Closure $closure)
     {
-        $this->events[$name]['method'] = $closure->bindTo($this, __CLASS__);
+        $this->methods[$name] = $closure->bindTo($this, __CLASS__);
     }
 
     /**
@@ -230,9 +254,7 @@ class Fsm
             $funName = strtolower(substr($name, 2));
             $this->on($funName, $arguments[0]);
         }else {
-            if(isset($this->events[$name])) {
-                $this->transform($this->events[$name]['to']);
-            }
+            $this->transform($name);
         }
     }
 
