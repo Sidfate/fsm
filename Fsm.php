@@ -31,11 +31,32 @@ class Fsm
     protected $data = [];
 
     /**
+     * Factory option
+     * @var mixed|null
+     */
+    protected static $option = null;
+
+    /**
+     * Factory for creating the same option Fsm object
+     * @param  $option
+     * @return string
+     */
+    public static function factory($option)
+    {
+        static::$option = $option;
+        return __CLASS__;
+    }
+
+
+    /**
      * Fsm constructor.
      * @param $data
      */
-    public function __construct($creator)
+    public function __construct($creator = null)
     {
+        if($creator === null) {
+            $creator = static::$option;
+        }
         $init = $this->arrGet($creator, 'init', '');
         $data = $this->arrGet($creator, 'data', []);
         $events = $this->arrGet($creator, 'events', []);
