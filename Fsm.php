@@ -68,8 +68,7 @@ class Fsm
 
     /**
      * Initialize state
-     * @param  [type] $init [description]
-     * @return [type]       [description]
+     * @param  $init
      */
     protected function initialize($init)
     {
@@ -244,6 +243,8 @@ class Fsm
      */
     public function __get($name)
     {
-        return isset($this->data[$name]) ? $this->data[$name] : null;
+        if(isset($this->data[$name])) {
+            return $this->data[$name];
+        }
     }
 }
