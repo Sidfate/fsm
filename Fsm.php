@@ -19,6 +19,12 @@ class Fsm
     protected $events = [];
 
     /**
+     * Life cycle observes
+     * @var array
+     */
+    protected $observes = [];
+
+    /**
      * Events method
      * @var array
      */
@@ -55,6 +61,14 @@ class Fsm
     protected static $option = null;
 
     /**
+     * Observe const.
+     */
+    const observeBefore = "before";
+    const observeLeave = "leave";
+    const observeEnter = "enter";
+    const observeAfter = "after";
+
+    /**
      * Factory for creating the same option Fsm object
      * @param  $option
      * @return string
@@ -64,7 +78,6 @@ class Fsm
         static::$option = $option;
         return __CLASS__;
     }
-
 
     /**
      * Fsm constructor.
@@ -175,10 +188,28 @@ class Fsm
         $to = array_search($event, $this->events[$from]);
 
         if($to) {
-            $method = $this->arrGet($this->methods, $event);
-            $method && call_user_func($method);
+            /**
+             * Life cycle 
+             * 
+             * onBeforeTransition 
+             * onBefore[Event]
+             * onLeaveState
+             * onLeave[From]
+             * onEnter[To]          = on[To]
+             * onEnterState       
+             * onAfter[Event]       = on[Event]
+             * onAfterTransition 
+             */
+            $this->dispatch('transition', static::observeBefore);
+            $this->dispatch($event, static::observeBefore);
+            $this->dispatch('state', static::observeLeave);
+            $this->dispatch($from, static::observeLeave);
             $this->state = $to;
             $this->history[] = $to;
+            $this->dispatch($to, static::observeEnter);
+            $this->dispatch('state', static::observeEnter);
+            $this->dispatch($event, static::observeAfter);  
+            $this->dispatch('transition', static::observeAfter);           
         }
     }
 
@@ -199,13 +230,50 @@ class Fsm
     }
 
     /**
-     * Bind method on event
+     * Observe the life cycle
      * @param $name
      * @param \Closure $closure
      */
-    public function on($name, \Closure $closure)
+    public function observe($name, \Closure $closure)
     {
-        $this->methods[$name] = $closure->bindTo($this, __CLASS__);
+        $bind = $closure->bindTo($this, __CLASS__);
+
+        preg_match("/^on([A-Z][a-z]*)(.*)/", $name, $matches);
+        if(!$matches) {
+            return ;
+        }
+        
+        $matches = array_slice($matches, 1);
+        array_walk($matches, function(&$item) {
+            $item = strlen($item) > 1  ? strtolower($item) : $item;
+        });
+        if(!$matches[1]) {
+            $target = $matches[0];
+            if(in_array($target, $this->transitions)) {
+                $status = static::observeAfter;
+            }else if(in_array($target, $this->states)) {
+                $status = static::observeEnter;
+            }else {
+                return ;
+            }
+        }else {
+            list($status, $target) = $matches;
+        }
+
+        $this->observes[$status][$target] = $bind;
+    }
+
+    /**
+     * Dispatch observe action
+     * @param  $name
+     * @param  $status
+     */
+    public function dispatch($name, $status)
+    {
+        if(isset($this->observes[$status][$name])) {
+            $method = $this->observes[$status][$name];
+            $method && call_user_func($method);
+        }
     }
 
     /**
@@ -252,15 +320,12 @@ class Fsm
      */
     public function trans()
     {
-        $trans = [];
         $from = $this->state;
-        foreach ($this->events as $eName=> $event) {
-            if($from == $event['from']) {
-                $trans[] = $eName;
-            }
+        if(!isset($this->events[$from])) {
+            return null;
         }
 
-        return $trans;
+        return array_keys($this->events[$from]);
     }
 
     /**
@@ -288,10 +353,9 @@ class Fsm
      */
     public function __call($name, $arguments)
     {
-        $function = substr($name, 0, 2);
-        if($function == 'on') {
-            $funName = strtolower(substr($name, 2));
-            $this->on($funName, $arguments[0]);
+        $sign = substr($name, 0, 2);
+        if($sign == 'on') {
+            $this->observe($name, $arguments[0]);
         }else {
             $this->transform($name);
         }
