@@ -27,3 +27,6 @@ echo $fsm->now();	// yellow
 
 # Document
 [Click me](https://github.com/Sidfate/fsm/wiki)
+
+# License
+MIT
