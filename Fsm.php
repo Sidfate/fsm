@@ -90,11 +90,13 @@ class Fsm
         }
         $init = $this->arrGet($creator, 'init', '');
         $data = $this->arrGet($creator, 'data', []);
+        $methods = $this->arrGet($creator, 'methods', []);
         $events = $this->arrGet($creator, 'events', []);
 
         $this->initialize($init);
         $this->setEvents($events);
         $this->setData($data);
+        $this->setMethod($methods);
     }
 
     /**
@@ -149,9 +151,10 @@ class Fsm
 
     /**
      * Set data
-     * @param array
+     * @param $data
      */
-    protected function setData($data) {
+    protected function setData($data) 
+    {
         foreach ($data as $key => $value) {
             if(!is_numeric($key)) {
                 $this->data[$key] = $value;
@@ -160,10 +163,28 @@ class Fsm
     }
 
     /**
+     * Set methods
+     * @param $methods
+     */
+    protected function setMethod($methods) 
+    {
+        foreach ($methods as $key => $method) {
+            if(!is_numeric($key)) {
+                $sign = substr($key, 0, 2);
+                if($sign == 'on') {
+                    $this->observe($key, $method);
+                }else {
+                    $this->methods[$key] = $method->bindTo($this, __CLASS__);
+                }
+            }
+        }
+    }
+
+    /**
      * Get the array value
      * @param $array
      * @param $key
-     * @param null $default
+     * @param $default
      * @return mixed|null
      */
     protected function arrGet($array, $key, $default = null)
@@ -183,7 +204,7 @@ class Fsm
     {
         $from = $this->state;
         if(!isset($this->events[$from])) {
-            return ;
+            return false;
         }
         $to = array_search($event, $this->events[$from]);
 
@@ -209,8 +230,12 @@ class Fsm
             $this->dispatch($to, static::observeEnter);
             $this->dispatch('state', static::observeEnter);
             $this->dispatch($event, static::observeAfter);  
-            $this->dispatch('transition', static::observeAfter);           
+            $this->dispatch('transition', static::observeAfter); 
+
+            return true;          
         }
+
+        return false;
     }
 
     /**
@@ -268,12 +293,19 @@ class Fsm
      * @param  $name
      * @param  $status
      */
-    public function dispatch($name, $status)
+    public function dispatch($name, $status=null)
     {
-        if(isset($this->observes[$status][$name])) {
-            $method = $this->observes[$status][$name];
-            $method && call_user_func($method);
-        }
+        if($status === null) {
+            if(isset($this->methods[$name])) {
+                $method = $this->methods[$name];
+                $method && call_user_func($method);
+            }
+        }else {
+            if(isset($this->observes[$status][$name])) {
+                $method = $this->observes[$status][$name];
+                $method && call_user_func($method);
+            }
+        }  
     }
 
     /**
@@ -357,7 +389,9 @@ class Fsm
         if($sign == 'on') {
             $this->observe($name, $arguments[0]);
         }else {
-            $this->transform($name);
+            if(!$this->transform($name)) {
+                $this->dispatch($name);
+            }
         }
     }
 
